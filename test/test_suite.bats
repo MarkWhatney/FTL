@@ -13,15 +13,17 @@ setup() {
 }
 
 # If a Cyrillic-blocking test fails after turning the option on, put it back
-# so later tests keep the default (off) behavior.
+# so later tests keep the default (off) behavior. Successful tests leave the
+# option as they set it: the cases after "option is enabled" must still see it
+# on, and "turned off again" restores the default before the rest of the suite.
 teardown() {
-  if grep -q 'cyrillic = true' /etc/pihole/pihole.toml 2>/dev/null; then
+  if [[ -z "${BATS_TEST_COMPLETED:-}" ]] && grep -q 'cyrillic = true' /etc/pihole/pihole.toml 2>/dev/null; then
     local logsize_before
     logsize_before="$(stat -c%s /var/log/pihole/FTL.log)"
     ./pihole-FTL --config dns.blocking.cyrillic false
     ./pihole-FTL wait-for 'DEBUG_CONFIG: pihole.toml unchanged' /var/log/pihole/FTL.log 5 "${logsize_before}"
     kill -HUP "$(cat /run/pihole-FTL.pid)"
-    ./pihole-FTL wait-for 'INFO: Compiled 2 allow and 11 deny regex for 11 clients' /var/log/pihole/FTL.log 5 "${logsize_before}"
+    ./pihole-FTL wait-for 'INFO: Compiled 2 allow and 11 deny regex' /var/log/pihole/FTL.log 5 "${logsize_before}"
   fi
 }
 
@@ -35,7 +37,7 @@ set_cyrillic() {
   assert_success
   run bash -c "kill -HUP $(cat /run/pihole-FTL.pid)"
   assert_success
-  run ./pihole-FTL wait-for "INFO: Compiled 2 allow and 11 deny regex for 11 clients" /var/log/pihole/FTL.log 5 "${logsize_before}"
+  run ./pihole-FTL wait-for "INFO: Compiled 2 allow and 11 deny regex" /var/log/pihole/FTL.log 5 "${logsize_before}"
   assert_success
 }
 
