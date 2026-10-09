@@ -1874,6 +1874,7 @@ void DB_read_queries(void)
 			case QUERY_DENYLIST_CNAME: // Blocked by exact denylist (inside CNAME path)
 			case QUERY_DBBUSY: // Blocked because gravity database was busy
 			case QUERY_SPECIAL_DOMAIN: // Blocked by special domain handling
+			case QUERY_CYRILLIC: // Blocked because the domain contains Cyrillic
 				query->flags.blocked = true;
 				// Get domain pointer
 				domain->blockedcount++;

@@ -54,6 +54,9 @@ enum query_status {
 	QUERY_SPECIAL_DOMAIN,
 	QUERY_CACHE_STALE,
 	QUERY_EXTERNAL_BLOCKED_EDE15,
+	// Appended immediately before the sentinel. Do not insert earlier:
+	// the query database stores these values as integers.
+	QUERY_CYRILLIC,
 	QUERY_STATUS_MAX
 } __attribute__ ((packed));
 

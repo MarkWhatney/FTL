@@ -1126,6 +1126,7 @@ int api_queries(struct ftl_conn *api)
 			case QUERY_IN_PROGRESS:
 			case QUERY_DBBUSY:
 			case QUERY_SPECIAL_DOMAIN:
+			case QUERY_CYRILLIC:
 			case QUERY_CACHE_STALE:
 			case QUERY_STATUS_MAX:
 				break;

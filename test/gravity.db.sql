@@ -234,6 +234,7 @@ INSERT INTO domainlist VALUES(16,3,'^regex-notMultiple.ftl$;querytype=!ANY,HTTPS
 /* Other special domains */
 INSERT INTO domainlist VALUES(17,1,'blacklisted-group-disabled.com',1,1559928803,1559928803,'Entry disabled by a group');
 INSERT INTO domainlist VALUES(18,0,'mask.icloud.com',1,1559928803,1559928803,'Allowing special domain');
+INSERT INTO domainlist VALUES(19,0,'xn--e1afmkfd.allowed.ftl',1,1559928803,1559928803,'Exact allow of a Cyrillic domain');
 DELETE FROM domainlist_by_group WHERE domainlist_id = 18 AND group_id = 0;
 
 INSERT INTO adlist VALUES(1,'https://pi-hole.net/block.txt',1,1559928803,1559928803,'Fake block-list',1559928803,2000,2,1,0,0);

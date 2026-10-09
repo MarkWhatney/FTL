@@ -181,6 +181,7 @@ struct config {
 			struct conf_item active;
 			struct conf_item mode;
 			struct conf_item edns;
+			struct conf_item cyrillic;
 		} blocking;
 		struct {
 			struct conf_item mozillaCanary;

@@ -29,6 +29,7 @@
 #include "regex_r.h"
 #include "config/config.h"
 #include "capabilities.h"
+#include "cyrillic.h"
 #include "resolve.h"
 #include "files.h"
 // add_to_fifo_buffer() u.a.
@@ -581,6 +582,10 @@ size_t _FTL_make_answer(struct dns_header *header, char *limit, const size_t len
 		case QUERY_SPECIAL_DOMAIN:
 			ede_code = EDE_BLOCKED;
 			ede_text = "special";
+			break;
+		case QUERY_CYRILLIC:
+			ede_code = EDE_BLOCKED;
+			ede_text = "cyrillic";
 			break;
 		case QUERY_EXTERNAL_BLOCKED_NXRA:
 			ede_code = EDE_BLOCKED;
@@ -1872,6 +1877,21 @@ static bool check_domain_blocked(const char *domain,
 		return true;
 	}
 
+	// Block domains containing Cyrillic code points when opted in.
+	// Exact, gravity, and regex matches above keep their own status.
+	// Allowlist and antigravity already returned. force_next_DNS_reply
+	// is left unset so the configured blocking mode is used.
+	if(config.dns.blocking.cyrillic.v.b && domain_contains_cyrillic(domain))
+	{
+		*new_status = QUERY_CYRILLIC;
+		blockingreason = "cyrillic blocked";
+		// The global cache status is what the reply's EDE text is taken
+		// from. Set it here so the first answer carries EDE, not only a
+		// later cache hit.
+		cacheStatus = QUERY_CYRILLIC;
+		return true;
+	}
+
 	// Not blocked because not found on any list
 	return false;
 }
@@ -2117,6 +2137,27 @@ static bool FTL_check_blocking(const char *domainstr, queriesData *query, client
 			query_blocked(query, domain, client, QUERY_SPECIAL_DOMAIN);
 			return true;
 
+		case QUERY_CYRILLIC:
+			// Known as containing Cyrillic. A config reload does not flush
+			// this cache, so a decision taken while the option was on must
+			// be forgotten when it is now off.
+			if(!config.dns.blocking.cyrillic.v.b)
+			{
+				dns_cache->blocking_status = QUERY_UNKNOWN;
+				cacheStatus = QUERY_UNKNOWN;
+				break;
+			}
+			blockingreason = "cyrillic blocked";
+			log_debug(DEBUG_QUERIES, "%s is known as %s", domainstr, blockingreason);
+			// Do not block if something along the CNAME path hit the allowlist
+			if(!query->flags.allowed)
+			{
+				force_next_DNS_reply = dns_cache->force_reply;
+				query_blocked(query, domain, client, blocking_status);
+				return true;
+			}
+			break;
+
 		case QUERY_EXTERNAL_BLOCKED_IP:
 		case QUERY_EXTERNAL_BLOCKED_NULL:
 		case QUERY_EXTERNAL_BLOCKED_NXRA:
@@ -2139,6 +2180,7 @@ static bool FTL_check_blocking(const char *domainstr, queriesData *query, client
 				case QUERY_IN_PROGRESS:
 				case QUERY_DBBUSY:
 				case QUERY_SPECIAL_DOMAIN:
+				case QUERY_CYRILLIC:
 				case QUERY_CACHE_STALE:
 				case QUERY_STATUS_MAX:
 					// Cannot happen
@@ -2192,6 +2234,21 @@ static bool FTL_check_blocking(const char *domainstr, queriesData *query, client
 
 			if(dns_cache->flags.allowed)
 				query->flags.allowed = true;
+
+			// A name cached while Cyrillic blocking was off is not
+			// re-checked by a config reload (that does not flush this
+			// cache). Re-evaluate it when the option is on. An allowlist
+			// entry stored on the cache still wins.
+			if(config.dns.blocking.cyrillic.v.b &&
+			   !query->flags.allowed &&
+			   domain_contains_cyrillic(domainstr))
+			{
+				blockingreason = "cyrillic blocked";
+				cacheStatus = QUERY_CYRILLIC;
+				log_debug(DEBUG_QUERIES, "%s is %s", domainstr, blockingreason);
+				query_blocked(query, domain, client, QUERY_CYRILLIC);
+				return true;
+			}
 
 			return false;
 	}

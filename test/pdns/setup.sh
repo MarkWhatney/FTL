@@ -64,6 +64,16 @@ pdnsutil rrset add ftl. regex-A.ftl. A 192.168.2.8
 pdnsutil rrset add ftl. regex-notA.ftl. A 192.168.2.9
 pdnsutil rrset add ftl. any.ftl. A 192.168.3.1
 
+# Cyrillic-blocking fixtures. xn--e1afmkfd is "пример", xn--ggle-55da is a
+# Cyrillic homograph, xn--mnchen-3ya is "münchen", xn--fiqs8s is "中国".
+pdnsutil rrset add ftl. xn--e1afmkfd.ftl. A 192.168.9.1
+pdnsutil rrset add ftl. xn--mnchen-3ya.ftl. A 192.168.9.2
+pdnsutil rrset add ftl. xn--fiqs8s.ftl. A 192.168.9.3
+pdnsutil rrset add ftl. xn--ggle-55da.ftl. A 192.168.9.4
+pdnsutil rrset add ftl. xn--e1afmkfd.allowed.ftl. A 192.168.9.5
+pdnsutil rrset add ftl. cname-cyr.ftl. CNAME xn--e1afmkfd.ftl.
+pdnsutil rrset add ftl. cname-cyr-allow.ftl. CNAME xn--e1afmkfd.allowed.ftl.
+
 # Create AAAA records
 pdnsutil rrset add ftl. aaaa.ftl. AAAA fe80::1c01
 pdnsutil rrset add ftl. regex-REPLYv4.ftl. AAAA fe80::2c01

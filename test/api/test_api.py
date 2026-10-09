@@ -1406,7 +1406,7 @@ class TestQueriesAdditional:
                             "GRAVITY_CNAME", "REGEX_CNAME", "DENYLIST_CNAME",
                             "EXTERNAL_BLOCKED_IP", "EXTERNAL_BLOCKED_NULL",
                             "EXTERNAL_BLOCKED_NXRA", "EXTERNAL_BLOCKED_EDE15",
-                            "DBBUSY"}
+                            "DBBUSY", "CYRILLIC"}
         for q in data["queries"]:
             assert q["status"] in blocked_statuses, \
                 f"Expected blocked status, got {q['status']}"

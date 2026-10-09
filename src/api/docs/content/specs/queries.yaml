@@ -93,7 +93,7 @@ components:
               type: string
           - in: query
             name: status
-            description: Filter by specific query status (GRAVITY, FORWARDED, ...)
+            description: Filter by specific query status (GRAVITY, FORWARDED, CYRILLIC, ...)
             required: false
             schema:
               type: string

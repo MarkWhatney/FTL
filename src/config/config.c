@@ -727,6 +727,12 @@ void initConfig(struct config *conf)
 	conf->dns.blocking.edns.d.edns_mode = EDNS_MODE_TEXT;
 	conf->dns.blocking.edns.c = validate_stub; // Only type-based checking
 
+	conf->dns.blocking.cyrillic.k = "dns.blocking.cyrillic";
+	conf->dns.blocking.cyrillic.h = "Block queries for domains that contain Cyrillic characters. This is disabled by default; with the option off, query handling is unchanged. When enabled together with dns.blocking.active, FTL decodes punycode (xn--) labels and also scans raw UTF-8. A query is blocked when any code point is in Cyrillic (U+0400-U+04FF), Cyrillic Supplement (U+0500-U+052F), Cyrillic Extended-A (U+2DE0-U+2DFF), Cyrillic Extended-B (U+A640-U+A69F), or Cyrillic Extended-C (U+1C80-U+1C8F). Other internationalized names, such as German or Chinese, are not blocked. Replies use the configured dns.blocking.mode and dns.blocking.edns. Exact and regex allowlist entries still win, including along CNAME chains.";
+	conf->dns.blocking.cyrillic.t = CONF_BOOL;
+	conf->dns.blocking.cyrillic.d.b = false;
+	conf->dns.blocking.cyrillic.c = validate_stub; // Only type-based checking
+
 	// sub-struct dns.special_domains
 	conf->dns.specialDomains.mozillaCanary.k = "dns.specialDomains.mozillaCanary";
 	conf->dns.specialDomains.mozillaCanary.h = "Should Pi-hole always reply with NXDOMAIN to A and AAAA queries of use-application-dns.net to disable Firefox automatic DNS-over-HTTP?\n\n This follows the recommendation on https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https";
