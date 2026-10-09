@@ -914,6 +914,8 @@ const char * __attribute__ ((const)) get_query_status_str(const enum query_statu
 			return "CACHE_STALE";
 		case QUERY_EXTERNAL_BLOCKED_EDE15:
 			return "EXTERNAL_BLOCKED_EDE15";
+		case QUERY_CYRILLIC:
+			return "CYRILLIC";
 		case QUERY_STATUS_MAX:
 		default:
 			return "INVALID";
@@ -1093,6 +1095,7 @@ bool __attribute__ ((const)) is_blocked(const enum query_status status)
 		case QUERY_DENYLIST_CNAME:
 		case QUERY_DBBUSY:
 		case QUERY_SPECIAL_DOMAIN:
+		case QUERY_CYRILLIC:
 			return true;
 	}
 }
@@ -1115,6 +1118,7 @@ bool __attribute__ ((const)) is_forwarded(const enum query_status status)
 		case QUERY_DENYLIST_CNAME:
 		case QUERY_DBBUSY:
 		case QUERY_SPECIAL_DOMAIN:
+		case QUERY_CYRILLIC:
 		case QUERY_IN_PROGRESS:
 		case QUERY_CACHE_STALE:
 		case QUERY_STATUS_MAX:
@@ -1128,7 +1132,9 @@ bool __attribute__ ((const)) is_forwarded(const enum query_status status)
 	}
 }
 
-static char blocked_list[32] = { 0 };
+// Sized for every blocked status id, including those appended later.
+// "(1,4,5,6,7,8,9,10,11,15,16,18,19)" already exceeds 32 bytes.
+static char blocked_list[96] = { 0 };
 const char * __attribute__ ((pure)) get_blocked_statuslist(void)
 {
 	if(blocked_list[0] != '\0')
@@ -1254,6 +1260,7 @@ bool __attribute__ ((const)) is_cached(const enum query_status status)
 		case QUERY_DENYLIST_CNAME:
 		case QUERY_DBBUSY:
 		case QUERY_SPECIAL_DOMAIN:
+		case QUERY_CYRILLIC:
 		default:
 			return false;
 	}
@@ -1301,6 +1308,8 @@ static const char* __attribute__ ((const)) query_status_str(const enum query_sta
 			return "CACHE_STALE";
 		case QUERY_EXTERNAL_BLOCKED_EDE15:
 			return "EXTERNAL_BLOCKED_EDE15";
+		case QUERY_CYRILLIC:
+			return "CYRILLIC";
 		case QUERY_STATUS_MAX:
 			return NULL;
 	}

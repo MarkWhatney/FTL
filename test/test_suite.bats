@@ -12,6 +12,35 @@ setup() {
   printf 'Starting test: %s\n' "$BATS_TEST_DESCRIPTION" >> /var/log/pihole/FTL.log
 }
 
+# If a Cyrillic-blocking test fails after turning the option on, put it back
+# so later tests keep the default (off) behavior. Successful tests leave the
+# option as they set it: the cases after "option is enabled" must still see it
+# on, and "turned off again" restores the default before the rest of the suite.
+teardown() {
+  if [[ -z "${BATS_TEST_COMPLETED:-}" ]] && grep -q 'cyrillic = true' /etc/pihole/pihole.toml 2>/dev/null; then
+    local logsize_before
+    logsize_before="$(stat -c%s /var/log/pihole/FTL.log)"
+    ./pihole-FTL --config dns.blocking.cyrillic false
+    ./pihole-FTL wait-for 'DEBUG_CONFIG: pihole.toml unchanged' /var/log/pihole/FTL.log 5 "${logsize_before}"
+    kill -HUP "$(cat /run/pihole-FTL.pid)"
+    ./pihole-FTL wait-for 'INFO: Compiled 2 allow and 11 deny regex' /var/log/pihole/FTL.log 5 "${logsize_before}"
+  fi
+}
+
+# Write dns.blocking.cyrillic and reload so the DNS cache is rebuilt.
+set_cyrillic() {
+  local logsize_before
+  logsize_before="$(stat -c%s /var/log/pihole/FTL.log)"
+  run ./pihole-FTL --config dns.blocking.cyrillic "$1"
+  assert_success
+  run ./pihole-FTL wait-for "DEBUG_CONFIG: pihole.toml unchanged" /var/log/pihole/FTL.log 5 "${logsize_before}"
+  assert_success
+  run bash -c "kill -HUP $(cat /run/pihole-FTL.pid)"
+  assert_success
+  run ./pihole-FTL wait-for "INFO: Compiled 2 allow and 11 deny regex" /var/log/pihole/FTL.log 5 "${logsize_before}"
+  assert_success
+}
+
 
 @test "Compare template and test TOML config files" {
   # We skip the first 5 lines of the files as they contain the version and
@@ -1521,6 +1550,79 @@ except socket.timeout:
   assert_line --index 1 ""
 }
 
+@test "Cyrillic blocking is disabled by default" {
+  run ./pihole-FTL --config dns.blocking.cyrillic
+  assert_success
+  assert_line --index 0 "false"
+
+  # Docker-style env override is read-only and must not change the daemon.
+  run bash -c 'FTLCONF_dns_blocking_cyrillic=true ./pihole-FTL --config dns.blocking.cyrillic'
+  assert_success
+  assert_line --index 0 "true"
+  run ./pihole-FTL --config dns.blocking.cyrillic
+  assert_success
+  assert_line --index 0 "false"
+
+  run bash -c "dig A xn--e1afmkfd.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.1"
+  run bash -c "dig A xn--mnchen-3ya.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.2"
+  run bash -c "dig A xn--fiqs8s.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.3"
+  run bash -c "dig A xn--ggle-55da.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.4"
+}
+
+@test "Cyrillic punycode domains are blocked when the option is enabled" {
+  set_cyrillic true
+
+  run bash -c "dig A xn--e1afmkfd.ftl @127.0.0.1 +short"
+  assert_line --index 0 "0.0.0.0"
+  assert_line --index 1 ""
+
+  run bash -c "dig A xn--e1afmkfd.ftl @127.0.0.1 | grep 'EDE: '"
+  assert_line --partial --index 0 "EDE: 15 (Blocked): (cyrillic)"
+  assert_line --index 1 ""
+
+  run bash -c 'grep -c "cyrillic blocked xn--e1afmkfd.ftl is 0.0.0.0" /var/log/pihole/pihole.log'
+  refute_line --index 0 "0"
+
+  # Homograph (Latin look-alike) is blocked; this is not a similarity check,
+  # the name simply contains Cyrillic.
+  run bash -c "dig A xn--ggle-55da.ftl @127.0.0.1 +short"
+  assert_line --index 0 "0.0.0.0"
+  assert_line --index 1 ""
+}
+
+@test "German and Chinese IDNs are not blocked by Cyrillic blocking" {
+  run bash -c "dig A xn--mnchen-3ya.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.2"
+  run bash -c "dig A xn--fiqs8s.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.3"
+}
+
+@test "Allowlist overrides Cyrillic blocking, including CNAME chains" {
+  run bash -c "dig A xn--e1afmkfd.allowed.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.5"
+
+  run bash -c "dig A cname-cyr.ftl @127.0.0.1 +short"
+  assert_line --index 0 "0.0.0.0"
+  assert_line --index 1 ""
+
+  run bash -c "dig A cname-cyr-allow.ftl @127.0.0.1 +short"
+  assert_line --index 0 "xn--e1afmkfd.allowed.ftl."
+  assert_line --index 1 "192.168.9.5"
+}
+
+@test "Cyrillic blocking can be turned off again" {
+  set_cyrillic false
+
+  run bash -c "dig A xn--e1afmkfd.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.1"
+  run bash -c "dig A xn--ggle-55da.ftl @127.0.0.1 +short"
+  assert_line --index 0 "192.168.9.4"
+}
+
 @test "Pi-hole uses dns.reply.blocking.IPv4/6 for blocked domain" {
   run bash -c 'grep "mode = \"NULL\"" /etc/pihole/pihole.toml'
   assert_line --index 0 '    mode = "NULL"'
@@ -2212,6 +2314,12 @@ except socket.timeout:
   assert_success
   assert_output --partial "HOSTNAME_WARNING_POSITION=PASS"
   assert_output --partial "PTR_RESPONSE_REGRESSION=PASS"
+}
+
+@test "Cyrillic detector regression harness" {
+  run ./cyrillic_regression
+  assert_success
+  assert_output --partial "CYRILLIC_REGRESSION=PASS"
 }
 
 @test "SHA256 checksum working" {

@@ -260,6 +260,8 @@ set(sources
         args.h
         capabilities.c
         capabilities.h
+        cyrillic.c
+        cyrillic.h
         daemon.c
         daemon.h
         datastructure.c
@@ -521,6 +523,27 @@ if(BUILD_GZIP_REGRESSION)
         target_compile_options(gzip_regression PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
         target_link_options(gzip_regression PRIVATE -fsanitize=address,undefined)
     endif()
+endif()
+
+# Standalone regression harness for Cyrillic domain detection (src/cyrillic.c).
+# The "Cyrillic detector regression harness" bats test runs the resulting
+# binary. Deliberately NOT given the strict EXTRAWARN/-Werror flags applied to
+# FTL code.
+#
+# Only built on request: `./build.sh test` enables it for local runs and the
+# CI Dockerfile passes -DBUILD_CYRILLIC_REGRESSION=ON at build time.
+option(BUILD_CYRILLIC_REGRESSION "Build the Cyrillic domain detector regression test harness" OFF)
+if(BUILD_CYRILLIC_REGRESSION)
+    if(NOT LIBIDN2 OR NOT LIBUNISTRING)
+        message(FATAL_ERROR "BUILD_CYRILLIC_REGRESSION requires libidn2 and libunistring")
+    endif()
+    add_executable(cyrillic_regression
+            ${PROJECT_SOURCE_DIR}/test/cyrillic_regression.c
+            ${PROJECT_SOURCE_DIR}/src/cyrillic.c)
+    target_include_directories(cyrillic_regression PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    # Same order as pihole-FTL. A static libidn2.a does not record its
+    # libunistring dependency, so the harness has to link it explicitly.
+    target_link_libraries(cyrillic_regression ${LIBIDN2} ${LIBUNISTRING})
 endif()
 
 # optional headers - may depend on type or version of the C standard library

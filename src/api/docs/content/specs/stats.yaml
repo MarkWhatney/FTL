@@ -490,6 +490,10 @@ components:
                   type: integer
                   description: Type EXTERNAL_BLOCKED_EDE15 queries
                   example: 0
+                CYRILLIC:
+                  type: integer
+                  description: Type CYRILLIC queries (blocked because the domain contains Cyrillic characters)
+                  example: 0
             replies:
               type: object
               description: Number of individual replies

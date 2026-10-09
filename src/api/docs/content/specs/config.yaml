@@ -388,6 +388,9 @@ components:
                       type: string
                     edns:
                       type: string
+                    cyrillic:
+                      type: boolean
+                      description: Block queries for domains that contain Cyrillic characters. Disabled by default.
                 specialDomains:
                   type: object
                   properties:
@@ -972,6 +975,7 @@ components:
               active: true
               mode: 'NULL'
               edns: 'NONE'
+              cyrillic: false
             specialDomains:
               mozillaCanary: true
               iCloudPrivateRelay: true
