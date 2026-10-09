@@ -18,7 +18,7 @@
 // DNS labels are at most 63 octets (RFC 1035).
 #define CYRILLIC_MAX_LABEL 63
 
-static bool codepoint_is_cyrillic(const uint32_t cp)
+static bool __attribute__((pure)) codepoint_is_cyrillic(const uint32_t cp)
 {
 	if(cp >= 0x0400u && cp <= 0x04FFu)
 		return true;
@@ -35,7 +35,7 @@ static bool codepoint_is_cyrillic(const uint32_t cp)
 
 // Return true when the UTF-8 sequence contains a Cyrillic code point.
 // Invalid and overlong sequences are skipped. They are not Cyrillic.
-static bool utf8_has_cyrillic(const unsigned char *s, const size_t len)
+static bool __attribute__((pure)) utf8_has_cyrillic(const unsigned char *s, const size_t len)
 {
 	size_t i = 0;
 
@@ -110,7 +110,7 @@ static bool utf8_has_cyrillic(const unsigned char *s, const size_t len)
 	return false;
 }
 
-static bool label_is_ace(const char *label, const size_t len)
+static bool __attribute__((pure)) label_is_ace(const char *label, const size_t len)
 {
 	if(len < 4u)
 		return false;
@@ -122,7 +122,7 @@ static bool label_is_ace(const char *label, const size_t len)
 }
 
 // Cheap reject for the query path: ordinary ASCII names never match.
-static bool might_contain_cyrillic(const char *domain)
+static bool __attribute__((pure)) might_contain_cyrillic(const char *domain)
 {
 	const unsigned char *p = (const unsigned char *)domain;
 
