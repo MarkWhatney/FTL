@@ -27,11 +27,13 @@ FTL_URL = "http://127.0.0.1"
 # recurses to the public ICANN root, whose DNSKEY set drifts with key-signing-key
 # rollovers - that used to change the number of root DNSKEY lookups and made the
 # DNSSEC-dependent counters below flaky.  If you add or remove queries in
-# test_suite.bats, update these.
+# test_suite.bats, update these. The Cyrillic cases add 14 forwarded A
+# queries, 4 blocked A queries, 2 DS lookups, 2 DNSKEY lookups, and one
+# exact allowlist domain.
 
-TOTAL       = 134
-FORWARDED   = 41
-DNSKEY      = 4
+TOTAL       = 152
+FORWARDED   = 55
+DNSKEY      = 6
 TOP_DOMAIN  = "localhost"
 
 
@@ -690,10 +692,10 @@ class TestStatsSummary:
         data = _j(api_session.get(f"{FTL_URL}/api/stats/summary", timeout=5), dump="stats_summary")
         q = data["queries"]
         assert q["total"] == TOTAL, json.dumps(data, indent=2)
-        assert q["blocked"] == 52
+        assert q["blocked"] == 56
         assert q["forwarded"] == FORWARDED
         assert q["cached"] == 41
-        assert q["unique_domains"] == 79
+        assert q["unique_domains"] == 86
         assert q["status"]["UNKNOWN"] == 0
         assert q["status"]["GRAVITY"] == 7
         assert q["status"]["FORWARDED"] == FORWARDED
@@ -701,7 +703,7 @@ class TestStatsSummary:
         assert q["status"]["REGEX"] == 21
         assert q["status"]["DENYLIST"] == 5
         assert q["status"]["SPECIAL_DOMAIN"] == 2
-        assert q["types"]["A"] == 71
+        assert q["types"]["A"] == 85
         assert q["types"]["AAAA"] == 19
 
         assert data["clients"]["active"] == 11
@@ -723,7 +725,7 @@ class TestStatsTopDomains:
         assert counts == sorted(counts, reverse=True), \
             f"Not sorted descending: {counts}"
         assert data["total_queries"] == TOTAL
-        assert data["blocked_queries"] == 52
+        assert data["blocked_queries"] == 56
 
     def test_top_domains_blocked(self, api_session):
         data = _j(api_session.get(f"{FTL_URL}/api/stats/top_domains?blocked=true", timeout=5))
@@ -821,7 +823,7 @@ class TestStatsUpstreams:
         assert data["forwarded_queries"] == FORWARDED
 
         blocklist = next(u for u in upstreams if u["ip"] == "blocklist")
-        assert blocklist["count"] == 52
+        assert blocklist["count"] == 56
         assert blocklist["port"] == -1
 
         cache = next(u for u in upstreams if u["ip"] == "cache")
@@ -838,8 +840,8 @@ class TestStatsQueryTypes:
     def test_query_types(self, api_session):
         data = _j(api_session.get(f"{FTL_URL}/api/stats/query_types", timeout=5), dump="query_types")
         assert data["types"] == {
-            "A": 71, "AAAA": 19, "ANY": 3, "SRV": 1, "SOA": 0,
-            "PTR": 8, "TXT": 11, "NAPTR": 1, "MX": 1, "DS": 6,
+            "A": 85, "AAAA": 19, "ANY": 3, "SRV": 1, "SOA": 0,
+            "PTR": 8, "TXT": 11, "NAPTR": 1, "MX": 1, "DS": 8,
             "RRSIG": 0, "DNSKEY": DNSKEY, "NS": 0, "SVCB": 3, "HTTPS": 3,
             "OTHER": 1,
         }, json.dumps(data, indent=2)
@@ -1073,7 +1075,7 @@ class TestInfo:
         assert db["groups"] == 5
         assert db["lists"] == 2
         assert db["clients"] == 5
-        assert db["domains"]["allowed"] == {"total": 3, "enabled": 3}
+        assert db["domains"]["allowed"] == {"total": 4, "enabled": 4}
         assert db["domains"]["denied"] == {"total": 2, "enabled": 2}
         assert db["regex"]["allowed"] == {"total": 2, "enabled": 2}
         assert db["regex"]["denied"] == {"total": 11, "enabled": 11}
@@ -1211,7 +1213,7 @@ class TestPADD:
         assert data["top_client"] == "127.0.0.1"
         q = data["queries"]
         assert q["total"] == TOTAL, json.dumps(data, indent=2)
-        assert q["blocked"] == 52
+        assert q["blocked"] == 56
         cache = data["cache"]
         assert cache["size"] == 10000
 

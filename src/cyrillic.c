@@ -33,6 +33,22 @@ static bool __attribute__((pure)) codepoint_is_cyrillic(const uint32_t cp)
 	return false;
 }
 
+// Overlong encodings and UTF-16 surrogates are not well-formed UTF-8.
+static bool __attribute__((pure)) utf8_rejected(const unsigned int need, const uint32_t cp)
+{
+	if(need == 2u && cp < 0x80u)
+		return true;
+	if(need == 3u && cp < 0x800u)
+		return true;
+	if(need == 4u && cp < 0x10000u)
+		return true;
+	if(need == 4u && cp > 0x10FFFFu)
+		return true;
+	if(cp >= 0xD800u && cp <= 0xDFFFu)
+		return true;
+	return false;
+}
+
 // Return true when the UTF-8 sequence contains a Cyrillic code point.
 // Invalid and overlong sequences are skipped. They are not Cyrillic.
 static bool __attribute__((pure)) utf8_has_cyrillic(const unsigned char *s, const size_t len)
@@ -91,11 +107,7 @@ static bool __attribute__((pure)) utf8_has_cyrillic(const unsigned char *s, cons
 			continue;
 		}
 
-		// Reject overlong encodings and UTF-16 surrogates.
-		if((need == 2u && cp < 0x80u) ||
-		   (need == 3u && cp < 0x800u) ||
-		   (need == 4u && (cp < 0x10000u || cp > 0x10FFFFu)) ||
-		   (cp >= 0xD800u && cp <= 0xDFFFu))
+		if(utf8_rejected(need, cp))
 		{
 			i += need;
 			continue;
